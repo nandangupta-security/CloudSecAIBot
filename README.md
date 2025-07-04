@@ -10,9 +10,9 @@ AWS AI SHELL
 
 **Overview**
 
-    This project provides a powerful and easy-to-use tool that integrates with your MCP (Model Control Platform) and makes AWS CLI calls to gather critical security-related information from your AWS subscription.
+    This project provides a powerful and easy-to-use tool that integrates with your MCP (Model Context Protocol) and makes calls using AWS CLI to gather critical security-related information from your AWS subscription.
     
-    It is specifically designed to help users quickly identify potential misconfigurations in their AWS environment — making it an essential utility for cloud security assessments.
+    It is specifically designed to help users quickly identify potential misconfigurations in their AWS environment — making it an handy utility for cloud security assessments.
 
 **Key Features**
 
@@ -21,8 +21,6 @@ AWS AI SHELL
     🔐 Detect users without MFA enabled
     
     🧾 Fetch AWS security-related configuration details
-    
-    ⚙️ Use directly via terminal with AWS CLI access
 
     🧠 Powered by a backend MCP to process natural language queries and convert them into actionable CLI commands
 
@@ -41,3 +39,5 @@ AWS AI SHELL
     MCP setup and connected to this tool
     
     Python 3.x (if applicable)
+
+    Can be used with Claude or Ollama with Openweb UI
