@@ -3,7 +3,7 @@
         "ExternalAttacker-MCP": {
             "command": "python3",
             "args": [
-                "your-local-path/awscli_claude.py"
+                "your-local-path-to-the-file/awscli_claude.py"
             ]
         }
     }
