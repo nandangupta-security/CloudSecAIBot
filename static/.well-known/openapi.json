@@ -1,0 +1,122 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AWS CLI Execution API",
+    "version": "1.0.0",
+    "description": "API to run AWS CLI commands via POST request. Only commands starting with 'aws ' are allowed."
+  },
+  "paths": {
+    "/run-aws": {
+      "post": {
+        "operationId": "runAwsCommand",
+        "summary": "Execute AWS CLI Command",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "AWS CLI command string starting with 'aws '"
+                  }
+                },
+                "required": ["command"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AWS CLI output",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "description": "Output of the AWS CLI command"
+                    }
+                  },
+                  "required": ["text"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid command",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Command execution failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iam/users-without-mfa": {
+      "get": {
+        "operationId": "listUsersWithoutMfa",
+        "summary": "List IAM users without MFA enabled",
+        "responses": {
+          "200": {
+            "description": "List of IAM users without MFA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "description": "Newline-separated usernames without MFA or a message if none"
+                    }
+                  },
+                  "required": ["text"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error while fetching users or MFA devices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

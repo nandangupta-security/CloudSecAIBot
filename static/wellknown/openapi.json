@@ -1,0 +1,59 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "AWS MCP Server API",
+    "description": "A server that executes AWS CLI read-only commands via Open WebUI and LLaMA3 integration.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/run-aws": {
+      "post": {
+        "summary": "Execute AWS CLI command",
+        "description": "Runs a given AWS CLI read-only command and returns its output.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "example": "aws s3 ls",
+                    "description": "AWS CLI read-only command to execute"
+                  }
+                },
+                "required": ["command"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Command output",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "output": {
+                      "type": "string",
+                      "description": "Text output from the AWS CLI command"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid command format"
+          },
+          "500": {
+            "description": "Error executing command"
+          }
+        }
+      }
+    }
+  }
+}
+

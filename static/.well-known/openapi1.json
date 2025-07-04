@@ -1,0 +1,92 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AWS CLI Execution API",
+    "version": "1.0.0",
+    "description": "API to run AWS CLI commands via POST request. Only commands starting with 'aws ' are allowed."
+  },
+  "paths": {
+    "/run-aws": {
+      "post": {
+        "operationId": "runAwsCommand",
+        "summary": "Execute AWS CLI Command",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "AWS CLI command string starting with 'aws '"
+                  }
+                },
+                "required": ["command"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AWS CLI command output",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "List of output lines from the AWS CLI command"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status of the command execution, e.g. success or error"
+                    }
+                  },
+                  "required": ["results", "status"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - command not allowed or missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Only AWS CLI commands are allowed."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - command execution failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error output from the AWS CLI command"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
