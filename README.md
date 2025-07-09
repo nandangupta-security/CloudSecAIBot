@@ -1,43 +1,87 @@
-AWS AI SHELL
+**"Cloud Sec AI Bot — AI-Powered Security Configuration Analyzer for Multi-Cloud"**
 
-**Owners:**
 
-    1.Nandan Gupta
-    
-    2.Swarup Natukula
-    
-    3.Prashant Venkatesh
+**Cloud Sec AI Bot** is an intelligent assistant that helps teams understand and audit their cloud **security configurations** using simple, natural language. Built for security teams, auditors, and DevSecOps professionals, it analyzes configuration states across **AWS**, **Azure**, and **GCP**, surfacing misconfigurations and policy violations in real time.
 
-**Overview**
+> Ask questions like:
+> *"Are there any publicly accessible cloud storage buckets?"*
+> *"Which IAM roles have full admin access?"*
+> *"List all firewall rules open to the internet"*
 
-    This project provides a powerful and easy-to-use tool that integrates with your MCP (Model Context Protocol) and makes calls using AWS CLI to gather critical security-related information from your AWS subscription.
-    
-    It is specifically designed to help users quickly identify potential misconfigurations in their AWS environment — making it an handy utility for cloud security assessments.
+Cloud Sec AI Bot translates these into secure cloud queries, executes them using **read-only access**, and returns clear, actionable insights.
 
-**Key Features**
+---
 
-    🔍 Scan for public S3 buckets
-    
-    🔐 Detect users without MFA enabled
-    
-    🧾 Fetch AWS security-related configuration details
+## 🧠 What It Does
 
-    🧠 Powered by a backend MCP to process natural language queries and convert them into actionable CLI commands
+Cloud Sec AI Bot focuses specifically on **security configuration visibility and analysis**, helping you:
 
-**Use Cases**
+* Detect misconfigurations like public storage, or missing MFA
+* Identify over-permissioned roles and unused credentials
+* Validate least-privilege adherence in IAM policies
 
-    Cloud security audits
-    
-    Continuous compliance checks
-    
-    Quick validations during red team/blue team assessments
+---
 
-**Requirements**
+## 🔍 Supported Cloud Platforms
 
-    AWS CLI configured with appropriate permissions
-    
-    MCP setup and connected to this tool
-    
-    Python 3.x (if applicable)
+Cloud Sec AI Bot works across:
 
-    Can be used with Claude or Ollama with Openweb UI
+* **Amazon Web Services (AWS)**: IAM, S3, EC2, Security Groups, CloudTrail, etc.
+* **Microsoft Azure**: Role assignments, NSGs, Storage, Key Vault, Defender settings
+* **Google Cloud Platform (GCP)**: IAM, Firewalls, Buckets, Projects, Audit configs
+
+---
+
+## 📊 Example Insights
+
+| Prompt                                    | Result                                            |
+| ----------------------------------------- | ------------------------------------------------- |
+| “Which storage buckets are public?”       | Lists all buckets with public read/write access   |
+| “Show roles with admin privileges”        | Flags roles with `AdministratorAccess` or similar |
+| “Do any security groups allow 0.0.0.0/0?” | Identifies overexposed EC2 or VM instances        |
+| “List users without MFA enabled”          | Flags IAM or Azure AD users missing MFA           |
+
+---
+
+## 🔐 Secure by Design
+
+* **Read-only access only**: All cloud interactions are conducted using least-privilege, read-only credentials.
+* **MCP execution layer**: Queries are routed through a **Middleware Command Processor (MCP)** to validate and execute commands safely.
+* **No write or destructive actions**: The system is designed for analysis and visibility only—**not remediation**.
+
+---
+
+## 🎯 Use Cases
+
+* Cloud security audits and assessments
+* Red/blue team reconnaissance
+
+---
+
+## 🏗️ Designed For
+
+* Security analysts and engineers
+* DevSecOps teams
+* Cloud architects
+* Risk and compliance auditors
+* Consultants and penetration testers
+
+---
+
+## 🚀 Vision & Roadmap
+
+We are building toward:
+
+* Multi-Cloud Misconfiguration Detection
+* Context-Aware Risk Scoring
+* AI-Generated Remediation Guidance
+
+
+---
+
+## Contributors
+
+Thanks to all the people who already contributed!
+Prashant Venkatesh
+Venkata Swarup Kumar
+Nandan Gupta
