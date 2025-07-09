@@ -83,5 +83,5 @@ We are building toward:
 
 Thanks to all the people who already contributed!
 * Prashant Venkatesh
-* Venkata Swarup Kumar
+* Swarup Natukula
 * Nandan Gupta
