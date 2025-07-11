@@ -5,6 +5,15 @@
             "args": [
                 "your-local-path-to-the-file/awscli_claude.py"
             ]
+        },
+        "Azure-MCP": {
+            "command": "python3",
+            "args": [
+                "your-local-path-to-the-file//azurecli_claude.py"
+            ],
+	    "env": {
+                "AZURE_CLI_DISABLE_CONNECTION_VERIFICATION": "1"
+            }
         }
     }
 }
