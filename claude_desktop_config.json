@@ -1,19 +1,25 @@
 {
     "mcpServers": {
-        "ExternalAttacker-MCP": {
+        "AWS-MCP": {
             "command": "python3",
             "args": [
-                "your-local-path-to-the-file/awscli_claude.py"
+                "Path-to-your-local-folder/CloudSecAIBot/awscli_claude.py"
             ]
         },
         "Azure-MCP": {
             "command": "python3",
             "args": [
-                "your-local-path-to-the-file//azurecli_claude.py"
+                "Path-to-your-local-folder/CloudSecAIBot/azurecli_claude.py"
             ],
-	    "env": {
+        "env": {
                 "AZURE_CLI_DISABLE_CONNECTION_VERIFICATION": "1"
             }
+        },
+        "GCP-MCP": {
+            "command": "python3",
+            "args": [
+                "Path-to-your-local-folder/CloudSecAIBot/gcpcli_claude.py"
+            ]
         }
     }
 }
