@@ -1,7 +1,5 @@
 ## **Cloud Sec AI Bot — AI-Powered Security Configuration Analyzer for Multi-Cloud**
 
-![Uploading image.png…]()
-
 
 
 **Cloud Sec AI Bot** is an intelligent assistant that helps teams understand and audit their cloud **security configurations** using simple, natural language. Built for security teams, auditors, and DevSecOps professionals, it analyzes configuration states across **AWS**, **Azure**, and **GCP**, surfacing misconfigurations and policy violations in real time.
