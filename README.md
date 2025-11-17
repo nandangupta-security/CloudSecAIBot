@@ -1,9 +1,5 @@
 ## **Cloud Sec AI Bot — AI-Powered Security Configuration Analyzer for Multi-Cloud**
 
-<p align = "center">
-<img width="256" height="256" alt="image" src="https://github.com/user-attachments/assets/0610e49e-2fc3-4973-a4f1-cfc6f99d4a83" />
-</p>
-
 
 **Cloud Sec AI Bot** is an intelligent assistant that helps teams understand and audit their cloud **security configurations** using simple, natural language. Built for security teams, auditors, and DevSecOps professionals, it analyzes configuration states across **AWS**, **Azure**, and **GCP**, surfacing misconfigurations and policy violations in real time.
 
@@ -23,6 +19,7 @@ Cloud Sec AI Bot focuses specifically on **security configuration visibility and
 * Detect misconfigurations like public storage, or missing MFA
 * Identify over-permissioned roles and unused credentials
 * Validate least-privilege adherence in IAM policies
+* Run comprehensive security audits using **Prowler** across AWS, Azure, and GCP
 
 ---
 
@@ -34,16 +31,18 @@ Cloud Sec AI Bot works across:
 * **Microsoft Azure**: Role assignments, NSGs, Storage, Key Vault, Defender settings
 * **Google Cloud Platform (GCP)**: IAM, Firewalls, Buckets, Projects, Audit configs
 
+**Note**: Also includes **Prowler** integration for automated security audits and compliance checks across all supported cloud platforms.
+
 ---
 
 ## 📊 Example Insights
 
 | Prompt                                    | Result                                            |
 | ----------------------------------------- | ------------------------------------------------- |
-| “Which storage buckets are public?”       | Lists all buckets with public read/write access   |
-| “Show roles with admin privileges”        | Flags roles with `AdministratorAccess` or similar |
-| “Do any security groups allow 0.0.0.0/0?” | Identifies overexposed EC2 or VM instances        |
-| “List users without MFA enabled”          | Flags IAM or Azure AD users missing MFA           |
+| "Which storage buckets are public?"       | Lists all buckets with public read/write access   |
+| "Show roles with admin privileges"        | Flags roles with `AdministratorAccess` or similar |
+| "Do any security groups allow 0.0.0.0/0?" | Identifies overexposed EC2 or VM instances        |
+| "List users without MFA enabled"          | Flags IAM or Azure AD users missing MFA           |
 
 ---
 
@@ -71,6 +70,36 @@ Cloud Sec AI Bot works across:
 * Consultants and penetration testers
 
 ---
+
+## 📦 Installation
+
+### Prerequisites
+
+* Python 3.11 or higher
+* Cloud CLI tools configured with appropriate credentials:
+  * **AWS**: `aws configure` or `aws sso login`
+  * **Azure**: `az login`
+  * **GCP**: `gcloud auth login`
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd CloudSecAIBot
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Configure Claude Desktop to use the MCP servers (see `CloudSecAIBotMCPServer-Claude_Desktop_Integration_Guide.md`)
+
+### Dependencies
+
+* `mcp>=1.0.0` - Model Context Protocol server framework
+* `prowler>=4.0.0` - Security auditing tool (optional, for Prowler integration)
 
 ## 🚀 Vision & Roadmap
 
