@@ -46,7 +46,7 @@ class AWSMCPServer:
             """List available tools"""
             return [
                 Tool(
-                    name="aws_cli",
+                    name="cloud-sec-aws-cli",
                     description="Execute AWS CLI commands safely",
                     inputSchema={
                         "type": "object",
@@ -65,7 +65,7 @@ class AWSMCPServer:
                     }
                 ),
                 Tool(
-                    name="aws_configure_check",
+                    name="cloud-sec-aws-configure-check",
                     description="Check AWS CLI configuration status",
                     inputSchema={
                         "type": "object",
@@ -73,7 +73,7 @@ class AWSMCPServer:
                     }
                 ),
                 Tool(
-                    name="aws_help",
+                    name="cloud-sec-aws-help",
                     description="Get help for AWS CLI commands",
                     inputSchema={
                         "type": "object",
@@ -91,11 +91,11 @@ class AWSMCPServer:
         async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             """Handle tool calls"""
             
-            if name == "aws_cli":
+            if name == "cloud-sec-aws-cli":
                 return await self._execute_aws_command(arguments)
-            elif name == "aws_configure_check":
+            elif name == "cloud-sec-aws-configure-check":
                 return await self._check_aws_config()
-            elif name == "aws_help":
+            elif name == "cloud-sec-aws-help":
                 return await self._get_aws_help(arguments)
             else:
                 return [TextContent(

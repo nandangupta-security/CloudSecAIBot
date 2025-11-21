@@ -19,6 +19,9 @@ from mcp.types import (
     TextContent,
     ImageContent,
     EmbeddedResource,
+    Prompt,
+    PromptMessage,
+    PromptArgument,
 )
 import mcp.server.stdio
 
@@ -94,13 +97,101 @@ def run_prowler_command(args: list[str], timeout: int = 300) -> dict[str, Any]:
         }
 
 
+@app.list_prompts()
+async def list_prompts() -> list[Prompt]:
+    """
+    Provide prompts to guide LLM on when to use Prowler tools.
+    These prompts help the LLM understand it should ONLY use these tools
+    when users explicitly request security audits.
+    """
+    return [
+        Prompt(
+            name="prowler_usage_guidelines",
+            description="Guidelines for when to use Prowler security audit tools",
+            arguments=[
+                PromptArgument(
+                    name="user_intent",
+                    description="The user's original request or question",
+                    required=True
+                )
+            ]
+        )
+    ]
+
+
+@app.get_prompt()
+async def get_prompt(name: str, arguments: dict[str, str] | None) -> PromptMessage:
+    """
+    Return prompt messages that guide the LLM on tool usage.
+    """
+    if name == "prowler_usage_guidelines":
+        user_intent = arguments.get("user_intent", "") if arguments else ""
+        
+        return PromptMessage(
+            role="user",
+            content=TextContent(
+                type="text",
+                text=f"""# Prowler Security Audit Tool Usage Guidelines
+
+**IMPORTANT: Only use Prowler tools when the user EXPLICITLY requests a security audit.**
+
+## When to Use Prowler Tools:
+✅ User explicitly asks to "audit" their cloud infrastructure
+✅ User requests a "compliance check"
+
+## When NOT to Use Prowler Tools:
+❌ General cloud infrastructure questions
+❌ Resource listing or information queries
+❌ Configuration changes or deployments
+❌ Cost analysis or optimization
+❌ Performance monitoring
+❌ Log analysis
+❌ Security questions that don't explicitly mention "audit" or "compliance check"
+❌ Any request that doesn't explicitly mention auditing or compliance checking
+
+## Examples:
+
+**Use Prowler:**
+- "Audit my AWS account"
+- "Run an audit on my Azure subscription"
+- "Compliance check for my GCP project"
+- "Perform a compliance audit on EC2"
+
+**Don't Use Prowler:**
+- "List my S3 buckets"
+- "What resources do I have in AWS?"
+- "Show me my Azure VMs"
+- "How can I reduce my cloud costs?"
+- "Check the status of my EC2 instances"
+- "What are my security risks?"
+- "Is my infrastructure secure?"
+
+## Current User Request:
+User: "{user_intent}"
+
+**Analysis:** Does this request explicitly ask for an "audit" or "compliance check"?
+- If YES: Proceed with appropriate Prowler tool
+- If NO: Use standard cloud CLI tools (aws, az, gcloud) instead
+
+Remember: Prowler performs comprehensive security audits that can take several minutes and generate extensive reports. Only invoke it when the user specifically requests an "audit" or "compliance check"."""
+            )
+        )
+    
+    raise ValueError(f"Unknown prompt: {name}")
+
+
 @app.list_tools()
 async def list_tools() -> list[Tool]:
     """List available Prowler security audit tools"""
     return [
         Tool(
             name="prowler_aws_audit",
-            description="Run Prowler security audit on AWS account using AWS CLI credentials. Supports filtering by services, regions, severity, and compliance frameworks.",
+            description="""Run Prowler security audit on AWS account. 
+            
+            ⚠️ ONLY USE THIS TOOL when user EXPLICITLY uses the word "audit" or "compliance check" in their request.
+            DO NOT use for general AWS queries, resource listing, configuration tasks, or security questions that don't mention "audit" or "compliance check".
+            
+            This tool performs a comprehensive security audit using AWS CLI credentials and supports filtering by services, regions, severity, and compliance frameworks.""",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -141,7 +232,12 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="prowler_azure_audit",
-            description="Run Prowler security audit on Azure subscription using Azure CLI credentials. Supports filtering by services and compliance frameworks.",
+            description="""Run Prowler security audit on Azure subscription.
+            
+            ⚠️ ONLY USE THIS TOOL when user EXPLICITLY uses the word "audit" or "compliance check" in their request.
+            DO NOT use for general Azure queries, resource listing, configuration tasks, or security questions that don't mention "audit" or "compliance check".
+            
+            This tool performs a comprehensive security audit using Azure CLI credentials and supports filtering by services and compliance frameworks.""",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -178,7 +274,12 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="prowler_gcp_audit",
-            description="Run Prowler security audit on GCP project using gcloud CLI credentials. Supports filtering by services and compliance frameworks.",
+            description="""Run Prowler security audit on GCP project.
+            
+            ⚠️ ONLY USE THIS TOOL when user EXPLICITLY uses the word "audit" or "compliance check" in their request.
+            DO NOT use for general GCP queries, resource listing, configuration tasks, or security questions that don't mention "audit" or "compliance check".
+            
+            This tool performs a comprehensive security audit using gcloud CLI credentials and supports filtering by services and compliance frameworks.""",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -216,7 +317,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="prowler_list_services",
-            description="List all available services that can be audited by Prowler for a specific cloud provider",
+            description="List all available services that can be audited by Prowler for a specific cloud provider. Use this to discover what services can be scanned before running an audit.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -231,7 +332,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="prowler_list_compliance",
-            description="List all available compliance frameworks supported by Prowler for a specific cloud provider",
+            description="List all available compliance frameworks supported by Prowler for a specific cloud provider. Use this to discover available compliance standards before running an audit.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -246,7 +347,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="prowler_check_installation",
-            description="Check if Prowler is installed and configured correctly, and verify CLI credentials for each cloud provider",
+            description="Check if Prowler is installed and configured correctly, and verify CLI credentials for each cloud provider. Use this to verify the environment is ready before running audits.",
             inputSchema={
                 "type": "object",
                 "properties": {}

@@ -1,25 +1,34 @@
 {
     "mcpServers": {
-        "AWS-MCP": {
+        "cloud-sec-ai-bot-AWS": {
             "command": "python3",
             "args": [
                 "Path-to-your-local-folder/CloudSecAIBot/awscli_claude.py"
             ]
         },
-        "Azure-MCP": {
+        "cloud-sec-ai-bot-Azure": {
             "command": "python3",
             "args": [
                 "Path-to-your-local-folder/CloudSecAIBot/azurecli_claude.py"
             ],
-        "env": {
+            "env": {
                 "AZURE_CLI_DISABLE_CONNECTION_VERIFICATION": "1"
             }
         },
-        "GCP-MCP": {
+        "cloud-sec-ai-bot-GCP": {
             "command": "python3",
             "args": [
                 "Path-to-your-local-folder/CloudSecAIBot/gcpcli_claude.py"
             ]
+        },
+        "cloud-sec-ai-bot-prowler": {
+            "command": "python3",
+            "args": [
+                "Path-to-your-local-folder/CloudSecAIBot/prowler_mcp.py"
+            ],
+            "env": {
+                "PROWLER_DISABLE_CONNECTION_VERIFICATION": "1"
+            }
         }
     }
 }

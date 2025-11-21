@@ -46,7 +46,7 @@ class GCPMCPServer:
             """List available tools"""
             return [
                 Tool(
-                    name="gcloud_cli",
+                    name="cloud-sec-gcloud-cli",
                     description="Execute Google Cloud CLI commands safely",
                     inputSchema={
                         "type": "object",
@@ -65,7 +65,7 @@ class GCPMCPServer:
                     }
                 ),
                 Tool(
-                    name="gcloud_auth_check",
+                    name="cloud-sec-gcloud-auth-check",
                     description="Check Google Cloud CLI authentication status",
                     inputSchema={
                         "type": "object",
@@ -73,7 +73,7 @@ class GCPMCPServer:
                     }
                 ),
                 Tool(
-                    name="gcloud_config_check",
+                    name="cloud-sec-gcloud-config-check",
                     description="Check Google Cloud CLI configuration",
                     inputSchema={
                         "type": "object",
@@ -81,7 +81,7 @@ class GCPMCPServer:
                     }
                 ),
                 Tool(
-                    name="gcloud_help",
+                    name="cloud-sec-gcloud-help",
                     description="Get help for Google Cloud CLI commands",
                     inputSchema={
                         "type": "object",
@@ -98,7 +98,7 @@ class GCPMCPServer:
                     }
                 ),
                 Tool(
-                    name="gsutil_cli",
+                    name="cloud-sec-gsutil-cli",
                     description="Execute Google Cloud Storage gsutil commands safely",
                     inputSchema={
                         "type": "object",
@@ -117,7 +117,7 @@ class GCPMCPServer:
                     }
                 ),
                 Tool(
-                    name="bq_cli",
+                    name="cloud-sec-bq-cli",
                     description="Execute Google BigQuery bq commands safely",
                     inputSchema={
                         "type": "object",
@@ -141,17 +141,17 @@ class GCPMCPServer:
         async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             """Handle tool calls"""
             
-            if name == "gcloud_cli":
+            if name == "cloud-sec-gcloud-cli":
                 return await self._execute_gcloud_command(arguments)
-            elif name == "gcloud_auth_check":
+            elif name == "cloud-sec-gcloud-auth-check":
                 return await self._check_gcloud_auth()
-            elif name == "gcloud_config_check":
+            elif name == "cloud-sec-gcloud-config-check":
                 return await self._check_gcloud_config()
-            elif name == "gcloud_help":
+            elif name == "cloud-sec-gcloud-help":
                 return await self._get_gcloud_help(arguments)
-            elif name == "gsutil_cli":
+            elif name == "cloud-sec-gsutil-cli":
                 return await self._execute_gsutil_command(arguments)
-            elif name == "bq_cli":
+            elif name == "cloud-sec-bq-cli":
                 return await self._execute_bq_command(arguments)
             else:
                 return [TextContent(
