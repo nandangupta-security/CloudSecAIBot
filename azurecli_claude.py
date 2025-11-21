@@ -46,7 +46,7 @@ class AzureMCPServer:
             """List available tools"""
             return [
                 Tool(
-                    name="azure_cli",
+                    name="cloud-sec-azure-cli",
                     description="Execute Azure CLI commands safely",
                     inputSchema={
                         "type": "object",
@@ -65,7 +65,7 @@ class AzureMCPServer:
                     }
                 ),
                 Tool(
-                    name="azure_login_check",
+                    name="cloud-sec-azure-login-check",
                     description="Check Azure CLI login status and configuration",
                     inputSchema={
                         "type": "object",
@@ -73,7 +73,7 @@ class AzureMCPServer:
                     }
                 ),
                 Tool(
-                    name="azure_help",
+                    name="cloud-sec-azure-help",
                     description="Get help for Azure CLI commands",
                     inputSchema={
                         "type": "object",
@@ -86,7 +86,7 @@ class AzureMCPServer:
                     }
                 ),
                 Tool(
-                    name="azure_account_info",
+                    name="cloud-sec-azure-account-info",
                     description="Get current Azure account and subscription information",
                     inputSchema={
                         "type": "object",
@@ -99,13 +99,13 @@ class AzureMCPServer:
         async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             """Handle tool calls"""
             
-            if name == "azure_cli":
+            if name == "cloud-sec-azure-cli":
                 return await self._execute_azure_command(arguments)
-            elif name == "azure_login_check":
+            elif name == "cloud-sec-azure-login-check":
                 return await self._check_azure_login()
-            elif name == "azure_help":
+            elif name == "cloud-sec-azure-help":
                 return await self._get_azure_help(arguments)
-            elif name == "azure_account_info":
+            elif name == "cloud-sec-azure-account-info":
                 return await self._get_account_info()
             else:
                 return [TextContent(
