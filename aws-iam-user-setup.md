@@ -107,6 +107,3 @@ aws s3 ls --profile readonly-user
 # Test admin user
 aws iam list-users --profile admin-user
 ```
-
-
-*Generated for AWS IAM — applies to all AWS regions.*
