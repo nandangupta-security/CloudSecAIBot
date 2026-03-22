@@ -10,7 +10,7 @@ A step-by-step guide to creating two IAM users — one with read-only access and
 2. [User 2 — Administrator IAM User](#user-2--administrator-iam-user)
 3. [Create Access Keys for CLI Usage](#create-access-keys-for-cli-usage)
 4. [Configure the AWS CLI](#configure-the-aws-cli)
-5. [Security Best Practices](#security-best-practices)
+
 
 ---
 
@@ -90,8 +90,8 @@ aws configure --profile admin-user
 ### Enter credentials when prompted
 
 ```
-AWS Access Key ID:     AKIAIOSFODNN7EXAMPLE
-AWS Secret Access Key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS Access Key ID:     
+AWS Secret Access Key: 
 Default region name:   us-east-1
 Default output format: json
 ```
@@ -108,25 +108,5 @@ aws s3 ls --profile readonly-user
 aws iam list-users --profile admin-user
 ```
 
-### Optional: Set a default profile via environment variable
-
-```bash
-export AWS_PROFILE=readonly-user
-```
-
-This avoids typing `--profile` on every command.
-
----
-
-## Security Best Practices
-
-- **Prefer IAM roles over long-lived access keys** for workloads running on AWS (EC2, Lambda, ECS, etc.).
-- **Enable MFA** on the administrator user for an added layer of protection.
-- **Rotate access keys** periodically — AWS recommends every 90 days.
-- **Never commit credentials** to source code or version control.
-- **Apply least privilege** — grant only the permissions a user actually needs. Consider scoped policies instead of `ReadOnlyAccess` or `AdministratorAccess` for production environments.
-- **Monitor usage** with AWS CloudTrail to track API activity for both users.
-
----
 
 *Generated for AWS IAM — applies to all AWS regions.*
