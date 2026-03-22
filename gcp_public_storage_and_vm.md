@@ -9,17 +9,23 @@
 ### 0.1 Login to GCP
 
 ```bash
-gcloud auth login
+# Login and update application default credentials
+gcloud auth login --update-adc
+
+# Set application default credentials (required for compute API calls)
+gcloud auth application-default login
 ```
+
+> If you ever get `insufficient authentication scopes` errors, re-run both commands above to refresh your credentials.
 
 ### 0.2 Create a New Project
 
 ```bash
-gcloud projects create my-gcp-project-123 \
+gcloud projects create my-bsides-gcp-project-123 \
   --name="My GCP Project"
 
 # Set it as the active project
-gcloud config set project my-gcp-project-123
+gcloud config set project my-bsides-gcp-project-123
 ```
 
 > **Project ID** must be globally unique, 6-30 characters, lowercase letters, digits, and hyphens only.
@@ -39,7 +45,7 @@ XXXXXX-XXXXXX-XXXXXX  My Billing Account  True
 
 ```bash
 # Link the billing account to your project
-gcloud billing projects link my-gcp-project-123 \
+gcloud billing projects link my-bsides-gcp-project-123 \
   --billing-account=XXXXXX-XXXXXX-XXXXXX
 ```
 
@@ -68,15 +74,18 @@ gcloud services enable storage.googleapis.com
 ### 2.1 Create a Storage Bucket
 
 ```bash
-gcloud storage buckets create gs://my-public-bucket-123 \
+gcloud storage buckets create gs://my-bsides-public-bucket-123 \
   --location us-central1 \
-  --uniform-bucket-level-access
+  --uniform-bucket-level-access \
+  --project my-bsides-gcp-project-123
 ```
+
+> **Bucket names are globally unique** across all GCP users. Use a distinctive name like `<project-name>-<purpose>` to avoid `409 Already exists` errors.
 
 ### 2.2 Make the Bucket Publicly Readable
 
 ```bash
-gcloud storage buckets add-iam-policy-binding gs://my-public-bucket-123 \
+gcloud storage buckets add-iam-policy-binding gs://my-bsides-public-bucket-123 \
   --member allUsers \
   --role roles/storage.objectViewer
 ```
@@ -84,16 +93,20 @@ gcloud storage buckets add-iam-policy-binding gs://my-public-bucket-123 \
 ### 2.3 Upload a File to the Bucket
 
 ```bash
-gcloud storage cp ./myfile.txt gs://my-public-bucket-123/myfile.txt
+# Create a test file first if you don't have one
+echo "Hello from GCP!" > myfile.txt
+
+# Upload it
+gcloud storage cp ./myfile.txt gs://my-bsides-public-bucket-123/myfile.txt
 ```
 
 ### 2.4 Get the Public URL of an Object
 
 ```bash
-gcloud storage objects describe gs://my-public-bucket-123/myfile.txt
+gcloud storage objects describe gs://my-bsides-public-bucket-123/myfile.txt
 ```
 
-> Public URL format: `https://storage.googleapis.com/my-public-bucket-123/myfile.txt`
+> Public URL format: `https://storage.googleapis.com/my-bsides-public-bucket-123/myfile.txt`
 
 ---
 
@@ -102,15 +115,15 @@ gcloud storage objects describe gs://my-public-bucket-123/myfile.txt
 ### 3.1 Create a Custom VPC Network
 
 ```bash
-gcloud compute networks create myVPC \
+gcloud compute networks create myvpc \
   --subnet-mode custom
 ```
 
 ### 3.2 Create a Subnet
 
 ```bash
-gcloud compute networks subnets create mySubnet \
-  --network myVPC \
+gcloud compute networks subnets create mysubnet \
+  --network myvpc \
   --region us-central1 \
   --range 10.0.1.0/24
 ```
@@ -118,32 +131,14 @@ gcloud compute networks subnets create mySubnet \
 ### 3.3 Create Firewall Rules to Allow Internet Traffic
 
 ```bash
-# Allow HTTP (port 80)
-gcloud compute firewall-rules create allow-http \
-  --network myVPC \
+# Allow SSH (port 22)
+gcloud compute firewall-rules create allow-ssh \
+  --network myvpc \
   --direction INGRESS \
   --action ALLOW \
-  --rules tcp:80 \
+  --rules tcp:22 \
   --source-ranges 0.0.0.0/0 \
-  --target-tags http-server
-
-# Allow HTTPS (port 443)
-gcloud compute firewall-rules create allow-https \
-  --network myVPC \
-  --direction INGRESS \
-  --action ALLOW \
-  --rules tcp:443 \
-  --source-ranges 0.0.0.0/0 \
-  --target-tags https-server
-
-# Allow RDP (port 3389) — for Windows VMs
-gcloud compute firewall-rules create allow-rdp \
-  --network myVPC \
-  --direction INGRESS \
-  --action ALLOW \
-  --rules tcp:3389 \
-  --source-ranges 0.0.0.0/0 \
-  --target-tags rdp-server
+  --target-tags ssh-server
 ```
 
 ### 3.4 Reserve a Static External IP Address
@@ -160,9 +155,23 @@ gcloud compute addresses describe my-static-ip \
   --format "get(address)"
 ```
 
-### 3.5 Create a Network Interface with the Static IP
+### 3.5 Create the VM Instance
 
-The static IP is attached directly during VM creation in the next step via `--address`.
+```bash
+gcloud compute instances create myvm \
+  --project my-bsides-gcp-project-123 \
+  --zone us-central1-a \
+  --machine-type e2-medium \
+  --network myvpc \
+  --subnet mysubnet \
+  --address my-static-ip \
+  --tags ssh-server \
+  --image-family ubuntu-2204-lts \
+  --image-project ubuntu-os-cloud \
+  --metadata enable-oslogin=TRUE
+```
+
+> `--tags ssh-server` links the VM to the SSH firewall rule created in step 3.3.
 
 ---
 
@@ -173,7 +182,7 @@ The static IP is attached directly during VM creation in the next step via `--ad
 gcloud compute instances list
 
 # Describe the VM and get its external IP
-gcloud compute instances describe myVM \
+gcloud compute instances describe myvm \
   --zone us-central1-a \
   --format "get(networkInterfaces[0].accessConfigs[0].natIP)"
 
@@ -181,7 +190,7 @@ gcloud compute instances describe myVM \
 gcloud storage buckets list
 
 # List objects in a bucket
-gcloud storage ls gs://my-public-bucket-123
+gcloud storage ls gs://my-bsides-public-bucket-123
 ```
 
 ---
@@ -190,22 +199,22 @@ gcloud storage ls gs://my-public-bucket-123
 
 ```bash
 # Delete firewall rules
-gcloud compute firewall-rules delete allow-http allow-https allow-rdp --quiet
+gcloud compute firewall-rules delete allow-ssh --quiet
 
 # Delete subnet
-gcloud compute networks subnets delete mySubnet --region us-central1 --quiet
+gcloud compute networks subnets delete mysubnet --region us-central1 --quiet
 
 # Delete VPC network
-gcloud compute networks delete myVPC --quiet
+gcloud compute networks delete myvpc --quiet
 
 # Delete static IP
 gcloud compute addresses delete my-static-ip --region us-central1 --quiet
 
 # Delete storage bucket and all contents
-gcloud storage rm --recursive gs://my-public-bucket-123
+gcloud storage rm --recursive gs://my-bsides-public-bucket-123
 
 # Delete the entire project (removes all resources)
-gcloud projects delete my-gcp-project-123
+gcloud projects delete my-bsides-gcp-project-123
 ```
 
 ---
