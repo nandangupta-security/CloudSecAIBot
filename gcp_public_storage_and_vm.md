@@ -6,14 +6,48 @@
 
 ## Prerequisites
 
+### 0.1 Login to GCP
+
 ```bash
-# Login to GCP
 gcloud auth login
+```
 
-# Set your project
-gcloud config set project <your-project-id>
+### 0.2 Create a New Project
 
-# Set default region and zone (optional)
+```bash
+gcloud projects create my-gcp-project-123 \
+  --name="My GCP Project"
+
+# Set it as the active project
+gcloud config set project my-gcp-project-123
+```
+
+> **Project ID** must be globally unique, 6-30 characters, lowercase letters, digits, and hyphens only.
+
+### 0.3 Link a Billing Account
+
+```bash
+# List available billing accounts
+gcloud billing accounts list
+```
+
+This outputs something like:
+```
+ACCOUNT_ID            NAME                OPEN
+XXXXXX-XXXXXX-XXXXXX  My Billing Account  True
+```
+
+```bash
+# Link the billing account to your project
+gcloud billing projects link my-gcp-project-123 \
+  --billing-account=XXXXXX-XXXXXX-XXXXXX
+```
+
+> If you have no billing account yet, create one at https://console.cloud.google.com/billing first. GCP offers $300 free trial credit for new accounts.
+
+### 0.4 Set Default Region and Zone
+
+```bash
 gcloud config set compute/region us-central1
 gcloud config set compute/zone us-central1-a
 ```
@@ -169,6 +203,9 @@ gcloud compute addresses delete my-static-ip --region us-central1 --quiet
 
 # Delete storage bucket and all contents
 gcloud storage rm --recursive gs://my-public-bucket-123
+
+# Delete the entire project (removes all resources)
+gcloud projects delete my-gcp-project-123
 ```
 
 ---
