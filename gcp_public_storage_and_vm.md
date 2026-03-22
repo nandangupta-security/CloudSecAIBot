@@ -9,14 +9,8 @@
 ### 0.1 Login to GCP
 
 ```bash
-# Login and update application default credentials
-gcloud auth login --update-adc
-
-# Set application default credentials (required for compute API calls)
-gcloud auth application-default login
+gcloud auth login
 ```
-
-> If you ever get `insufficient authentication scopes` errors, re-run both commands above to refresh your credentials.
 
 ### 0.2 Create a New Project
 
