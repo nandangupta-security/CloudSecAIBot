@@ -40,7 +40,8 @@ aws ec2 run-instances \
   --count 1 \
   --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=my-free-tier-vm}]'
 ```
-
+use "ami-02dfbd4ff395f2a1b" for region us-east-1
+use "ami-040855b0715ee6f0b" for region us-east-2
 ---
 
 ## S3
