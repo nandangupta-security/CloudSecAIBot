@@ -1,0 +1,5 @@
+# Virtual environment
+.venv/
+
+# Environment variables / API keys — never commit these
+.env

@@ -1,2 +1,17 @@
+# MCP server framework — used by all MCP server scripts
 mcp>=1.0.0
-prowler>=4.0.0
+
+# Prowler — cloud security auditing tool (used by prowler_mcp.py)
+#prowler>=4.0.0
+
+# LiteLLM — unified interface to 100+ LLM providers (used by agent_runner.py)
+# Lets you switch between Claude, GPT, Gemini, Mistral, Groq etc. by changing
+# a single model string without touching any other code.
+litellm>=1.0.0
+
+# APScheduler — in-memory cron scheduler (used by scheduler_daemon.py)
+# Fires agent_runner at scheduled times based on jobs.json
+apscheduler>=3.10.0
+
+# python-dotenv — loads .env file for API keys (used by agent_runner + daemon)
+python-dotenv>=1.0.0
