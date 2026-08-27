@@ -9,10 +9,12 @@ import json
 import logging
 import subprocess
 import sys
+import time
 from typing import Any, Dict, List, Optional
 import shlex
 
 from cloud_command_safety import is_safe_azure_command
+from command_audit_log import log_command, read_recent
 
 # MCP server imports
 try:
@@ -94,6 +96,20 @@ class AzureMCPServer:
                         "type": "object",
                         "properties": {}
                     }
+                ),
+                Tool(
+                    name="cloud-sec-azure-audit-log",
+                    description="Show the most recent Azure commands this server has run or blocked, from output/command_audit.log",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "limit": {
+                                "type": "integer",
+                                "description": "Max number of recent entries to return (default: 20)",
+                                "default": 20
+                            }
+                        }
+                    }
                 )
             ]
 
@@ -109,6 +125,8 @@ class AzureMCPServer:
                 return await self._get_azure_help(arguments)
             elif name == "cloud-sec-azure-account-info":
                 return await self._get_account_info()
+            elif name == "cloud-sec-azure-audit-log":
+                return self._get_audit_log(arguments)
             else:
                 return [TextContent(
                     type="text",
@@ -129,14 +147,16 @@ class AzureMCPServer:
             
             # Validate command doesn't contain dangerous operations
             if not self._is_safe_command(command):
+                log_command("azure", "cloud-sec-azure-cli", command, allowed=False,
+                            block_reason="not a recognized read-only operation")
                 return [TextContent(
                     type="text",
                     text="Error: Command contains potentially dangerous operations"
                 )]
-            
+
             # Prepare full Azure command
             full_command = f"az {command}"
-            
+
             # Parse command safely
             try:
                 cmd_parts = shlex.split(full_command)
@@ -145,23 +165,28 @@ class AzureMCPServer:
                     type="text",
                     text=f"Error parsing command: {str(e)}"
                 )]
-            
+
             # Execute command
             logger.info(f"Executing: {full_command}")
-            
+            start_time = time.monotonic()
+
             # Create subprocess
             process = await asyncio.create_subprocess_exec(
                 *cmd_parts,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            
+
             # Use asyncio.wait_for to handle timeout
             stdout, stderr = await asyncio.wait_for(
-                process.communicate(), 
+                process.communicate(),
                 timeout=timeout
             )
-            
+
+            log_command("azure", "cloud-sec-azure-cli", command, allowed=True,
+                        exit_code=process.returncode,
+                        duration_ms=int((time.monotonic() - start_time) * 1000))
+
             # Prepare response
             response_text = f"Command: {full_command}\n"
             response_text += f"Exit Code: {process.returncode}\n\n"
@@ -178,6 +203,8 @@ class AzureMCPServer:
             )]
             
         except asyncio.TimeoutError:
+            log_command("azure", "cloud-sec-azure-cli", command, allowed=True,
+                        block_reason=f"timed out after {timeout}s")
             return [TextContent(
                 type="text",
                 text=f"Error: Command timed out after {timeout} seconds"
@@ -187,6 +214,22 @@ class AzureMCPServer:
                 type="text",
                 text=f"Error executing command: {str(e)}"
             )]
+
+    def _get_audit_log(self, arguments: Dict[str, Any]) -> List[TextContent]:
+        """Show recent Azure entries from the shared command audit log."""
+        limit = arguments.get("limit", 20)
+        entries = read_recent(limit=limit, provider="azure")
+
+        if not entries:
+            return [TextContent(type="text", text="No Azure commands recorded in the audit log yet.")]
+
+        lines = [f"Last {len(entries)} Azure command(s) from output/command_audit.log:\n"]
+        for e in entries:
+            status = "BLOCKED" if not e.get("allowed") else f"exit={e.get('exit_code')}"
+            extra = f" ({e['block_reason']})" if e.get("block_reason") else ""
+            lines.append(f"[{e.get('timestamp')}] {status}{extra}: az {e.get('command')}")
+
+        return [TextContent(type="text", text="\n".join(lines))]
 
     async def _check_azure_login(self) -> List[TextContent]:
         """Check Azure CLI login status"""
