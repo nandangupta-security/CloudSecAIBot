@@ -1,0 +1,6 @@
+# Dev/test-only dependencies — not needed to run CloudSecAIBot itself.
+# Install alongside requirements.txt to run the test suite:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pytest tests/
+
+pytest>=7.0.0

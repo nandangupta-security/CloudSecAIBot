@@ -3,3 +3,5 @@
 
 # Environment variables / API keys — never commit these
 .env
+__pycache__/
+.pytest_cache/
