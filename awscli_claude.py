@@ -9,8 +9,12 @@ import json
 import logging
 import subprocess
 import sys
+import time
 from typing import Any, Dict, List, Optional
 import shlex
+
+from cloud_command_safety import is_safe_aws_command
+from command_audit_log import log_command, read_recent
 
 # MCP server imports
 try:
@@ -84,6 +88,20 @@ class AWSMCPServer:
                             }
                         }
                     }
+                ),
+                Tool(
+                    name="cloud-sec-aws-audit-log",
+                    description="Show the most recent AWS commands this server has run or blocked, from output/command_audit.log",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "limit": {
+                                "type": "integer",
+                                "description": "Max number of recent entries to return (default: 20)",
+                                "default": 20
+                            }
+                        }
+                    }
                 )
             ]
 
@@ -97,6 +115,8 @@ class AWSMCPServer:
                 return await self._check_aws_config()
             elif name == "cloud-sec-aws-help":
                 return await self._get_aws_help(arguments)
+            elif name == "cloud-sec-aws-audit-log":
+                return self._get_audit_log(arguments)
             else:
                 return [TextContent(
                     type="text",
@@ -117,14 +137,16 @@ class AWSMCPServer:
             
             # Validate command doesn't contain dangerous operations
             if not self._is_safe_command(command):
+                log_command("aws", "cloud-sec-aws-cli", command, allowed=False,
+                            block_reason="not a recognized read-only operation")
                 return [TextContent(
                     type="text",
                     text="Error: Command contains potentially dangerous operations"
                 )]
-            
+
             # Prepare full AWS command
             full_command = f"aws {command}"
-            
+
             # Parse command safely
             try:
                 cmd_parts = shlex.split(full_command)
@@ -133,23 +155,28 @@ class AWSMCPServer:
                     type="text",
                     text=f"Error parsing command: {str(e)}"
                 )]
-            
+
             # Execute command
             logger.info(f"Executing: {full_command}")
-            
+            start_time = time.monotonic()
+
             # Create subprocess without timeout parameter
             process = await asyncio.create_subprocess_exec(
                 *cmd_parts,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            
+
             # Use asyncio.wait_for to handle timeout
             stdout, stderr = await asyncio.wait_for(
-                process.communicate(), 
+                process.communicate(),
                 timeout=timeout
             )
-            
+
+            log_command("aws", "cloud-sec-aws-cli", command, allowed=True,
+                        exit_code=process.returncode,
+                        duration_ms=int((time.monotonic() - start_time) * 1000))
+
             # Prepare response
             response_text = f"Command: {full_command}\n"
             response_text += f"Exit Code: {process.returncode}\n\n"
@@ -166,6 +193,8 @@ class AWSMCPServer:
             )]
             
         except asyncio.TimeoutError:
+            log_command("aws", "cloud-sec-aws-cli", command, allowed=True,
+                        block_reason=f"timed out after {timeout}s")
             return [TextContent(
                 type="text",
                 text=f"Error: Command timed out after {timeout} seconds"
@@ -175,6 +204,22 @@ class AWSMCPServer:
                 type="text",
                 text=f"Error executing command: {str(e)}"
             )]
+
+    def _get_audit_log(self, arguments: Dict[str, Any]) -> List[TextContent]:
+        """Show recent AWS entries from the shared command audit log."""
+        limit = arguments.get("limit", 20)
+        entries = read_recent(limit=limit, provider="aws")
+
+        if not entries:
+            return [TextContent(type="text", text="No AWS commands recorded in the audit log yet.")]
+
+        lines = [f"Last {len(entries)} AWS command(s) from output/command_audit.log:\n"]
+        for e in entries:
+            status = "BLOCKED" if not e.get("allowed") else f"exit={e.get('exit_code')}"
+            extra = f" ({e['block_reason']})" if e.get("block_reason") else ""
+            lines.append(f"[{e.get('timestamp')}] {status}{extra}: aws {e.get('command')}")
+
+        return [TextContent(type="text", text="\n".join(lines))]
 
     async def _check_aws_config(self) -> List[TextContent]:
         """Check AWS CLI configuration"""
@@ -285,28 +330,19 @@ class AWSMCPServer:
             )]
 
     def _is_safe_command(self, command: str) -> bool:
-        """Check if command is safe to execute"""
-        # List of potentially dangerous operations
-        dangerous_patterns = [
-            "rm", "delete", "destroy", "terminate",
-            "&&", "||", ";", "|", ">", "<",
-            "sudo", "su", "chmod", "chown",
-            "eval", "exec", "system"
-        ]
-        
-        command_lower = command.lower()
-        
-        # Check for dangerous patterns
-        for pattern in dangerous_patterns:
-            if pattern in command_lower:
-                logger.warning(f"Blocked potentially dangerous command: {command}")
-                return False
-        
-        # Additional safety checks
-        if command.startswith("-") or command.startswith("--"):
-            logger.warning(f"Blocked command starting with dash: {command}")
+        """
+        Check if command is safe to execute.
+
+        Delegates to cloud_command_safety.is_safe_aws_command(), which
+        allowlists read-only AWS CLI operations (list-*/describe-*/get-*/...)
+        rather than blocklisting dangerous substrings. See that module's
+        docstring for why the substring-blocklist approach this replaced was
+        both bypassable and prone to false positives.
+        """
+        if not is_safe_aws_command(command):
+            logger.warning(f"Blocked command that isn't a recognized read-only operation: {command}")
             return False
-        
+
         return True
 
     async def run(self):

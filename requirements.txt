@@ -1,5 +1,9 @@
 # MCP server framework — used by all MCP server scripts
-mcp>=1.0.0
+# Pinned <2.0 — v2.0.0 rewrote Server to drop the list_tools()/call_tool()
+# decorator API this repo's servers rely on. Installing the unpinned
+# constraint pulls 2.0.0+ and every server fails at startup with:
+#   AttributeError: 'Server' object has no attribute 'list_tools'
+mcp>=1.0.0,<2.0.0
 
 # Prowler — cloud security auditing tool (used by prowler_mcp.py)
 #prowler>=4.0.0
