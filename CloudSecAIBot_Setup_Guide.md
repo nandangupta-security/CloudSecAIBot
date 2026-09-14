@@ -365,6 +365,21 @@ Results are saved to `output/`.
 
 ---
 
+## Running the Test Suite
+
+Unit and integration tests for the command-safety allowlist and audit log
+(`cloud_command_safety.py`, `command_audit_log.py`, and the AWS/Azure/GCP
+server classes) live in `tests/`. They're hermetic — subprocess calls are
+mocked, so no real `aws`/`az`/`gcloud` CLI or cloud credentials are needed
+to run them.
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+pytest tests/
+```
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |

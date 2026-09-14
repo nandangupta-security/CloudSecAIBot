@@ -9,8 +9,12 @@ import json
 import logging
 import subprocess
 import sys
+import time
 from typing import Any, Dict, List, Optional
 import shlex
+
+from cloud_command_safety import is_safe_gcloud_command, is_safe_gsutil_command, is_safe_bq_command
+from command_audit_log import log_command, read_recent
 
 # MCP server imports
 try:
@@ -134,6 +138,20 @@ class GCPMCPServer:
                         },
                         "required": ["command"]
                     }
+                ),
+                Tool(
+                    name="cloud-sec-gcp-audit-log",
+                    description="Show the most recent gcloud/gsutil/bq commands this server has run or blocked, from output/command_audit.log",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "limit": {
+                                "type": "integer",
+                                "description": "Max number of recent entries to return (default: 20)",
+                                "default": 20
+                            }
+                        }
+                    }
                 )
             ]
 
@@ -153,6 +171,8 @@ class GCPMCPServer:
                 return await self._execute_gsutil_command(arguments)
             elif name == "cloud-sec-bq-cli":
                 return await self._execute_bq_command(arguments)
+            elif name == "cloud-sec-gcp-audit-log":
+                return self._get_audit_log(arguments)
             else:
                 return [TextContent(
                     type="text",
@@ -172,16 +192,18 @@ class GCPMCPServer:
                 )]
             
             # Validate command doesn't contain dangerous operations
-            if not self._is_safe_command(command):
+            if not self._is_safe_gcloud_command(command):
+                log_command("gcp", "cloud-sec-gcloud-cli", command, allowed=False,
+                            block_reason="not a recognized read-only operation")
                 return [TextContent(
                     type="text",
                     text="Error: Command contains potentially dangerous operations"
                 )]
-            
+
             # Prepare full gcloud command
             full_command = f"gcloud {command}"
-            
-            return await self._execute_command(full_command, timeout)
+
+            return await self._execute_command(full_command, timeout, "cloud-sec-gcloud-cli", command)
             
         except Exception as e:
             return [TextContent(
@@ -202,16 +224,18 @@ class GCPMCPServer:
                 )]
             
             # Validate command doesn't contain dangerous operations
-            if not self._is_safe_command(command):
+            if not self._is_safe_gsutil_command(command):
+                log_command("gcp", "cloud-sec-gsutil-cli", command, allowed=False,
+                            block_reason="not a recognized read-only operation")
                 return [TextContent(
                     type="text",
                     text="Error: Command contains potentially dangerous operations"
                 )]
-            
+
             # Prepare full gsutil command
             full_command = f"gsutil {command}"
-            
-            return await self._execute_command(full_command, timeout)
+
+            return await self._execute_command(full_command, timeout, "cloud-sec-gsutil-cli", command)
             
         except Exception as e:
             return [TextContent(
@@ -232,16 +256,18 @@ class GCPMCPServer:
                 )]
             
             # Validate command doesn't contain dangerous operations
-            if not self._is_safe_command(command):
+            if not self._is_safe_bq_command(command):
+                log_command("gcp", "cloud-sec-bq-cli", command, allowed=False,
+                            block_reason="not a recognized read-only operation")
                 return [TextContent(
                     type="text",
                     text="Error: Command contains potentially dangerous operations"
                 )]
-            
+
             # Prepare full bq command
             full_command = f"bq {command}"
-            
-            return await self._execute_command(full_command, timeout)
+
+            return await self._execute_command(full_command, timeout, "cloud-sec-bq-cli", command)
             
         except Exception as e:
             return [TextContent(
@@ -249,8 +275,19 @@ class GCPMCPServer:
                 text=f"Error executing bq command: {str(e)}"
             )]
 
-    async def _execute_command(self, full_command: str, timeout: int) -> List[TextContent]:
-        """Execute a command safely"""
+    async def _execute_command(
+        self, full_command: str, timeout: int,
+        tool_name: Optional[str] = None, raw_command: Optional[str] = None,
+    ) -> List[TextContent]:
+        """
+        Execute a command safely.
+
+        tool_name/raw_command (when provided by a caller that already ran
+        its own safety check — gcloud/gsutil/bq) identify the entry for the
+        shared command_audit_log; _check_gcloud_auth/_check_gcloud_config/
+        _get_gcloud_help don't pass them and simply aren't audited, same as
+        before this feature existed.
+        """
         try:
             # Parse command safely
             try:
@@ -260,39 +297,48 @@ class GCPMCPServer:
                     type="text",
                     text=f"Error parsing command: {str(e)}"
                 )]
-            
+
             # Execute command
             logger.info(f"Executing: {full_command}")
-            
+            start_time = time.monotonic()
+
             # Create subprocess
             process = await asyncio.create_subprocess_exec(
                 *cmd_parts,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-            
+
             # Use asyncio.wait_for to handle timeout
             stdout, stderr = await asyncio.wait_for(
-                process.communicate(), 
+                process.communicate(),
                 timeout=timeout
             )
-            
+
+            if tool_name and raw_command is not None:
+                log_command("gcp", tool_name, raw_command, allowed=True,
+                            exit_code=process.returncode,
+                            duration_ms=int((time.monotonic() - start_time) * 1000))
+
             # Prepare response
             response_text = f"Command: {full_command}\n"
             response_text += f"Exit Code: {process.returncode}\n\n"
-            
+
             if stdout:
                 response_text += f"Output:\n{stdout.decode('utf-8')}\n"
-            
+
             if stderr:
                 response_text += f"Error:\n{stderr.decode('utf-8')}\n"
-            
+
             return [TextContent(
                 type="text",
                 text=response_text
             )]
-            
+
         except asyncio.TimeoutError:
+            if tool_name and raw_command is not None:
+                log_command("gcp", tool_name, raw_command, allowed=True,
+                            block_reason=f"timed out after {timeout}s")
             return [TextContent(
                 type="text",
                 text=f"Error: Command timed out after {timeout} seconds"
@@ -302,6 +348,28 @@ class GCPMCPServer:
                 type="text",
                 text=f"Error executing command: {str(e)}"
             )]
+
+    def _get_audit_log(self, arguments: Dict[str, Any]) -> List[TextContent]:
+        """Show recent GCP (gcloud/gsutil/bq) entries from the shared command audit log."""
+        limit = arguments.get("limit", 20)
+        entries = read_recent(limit=limit, provider="gcp")
+
+        if not entries:
+            return [TextContent(type="text", text="No GCP commands recorded in the audit log yet.")]
+
+        binary_by_tool = {
+            "cloud-sec-gcloud-cli": "gcloud",
+            "cloud-sec-gsutil-cli": "gsutil",
+            "cloud-sec-bq-cli": "bq",
+        }
+        lines = [f"Last {len(entries)} GCP command(s) from output/command_audit.log:\n"]
+        for e in entries:
+            status = "BLOCKED" if not e.get("allowed") else f"exit={e.get('exit_code')}"
+            extra = f" ({e['block_reason']})" if e.get("block_reason") else ""
+            binary = binary_by_tool.get(e.get("tool"), e.get("tool", "?"))
+            lines.append(f"[{e.get('timestamp')}] {status}{extra}: {binary} {e.get('command')}")
+
+        return [TextContent(type="text", text="\n".join(lines))]
 
     async def _check_gcloud_auth(self) -> List[TextContent]:
         """Check Google Cloud CLI authentication status"""
@@ -471,49 +539,38 @@ class GCPMCPServer:
                 text=f"Error getting help: {str(e)}"
             )]
 
-    def _is_safe_command(self, command: str) -> bool:
-        """Check if command is safe to execute"""
-        # List of potentially dangerous operations
-        dangerous_patterns = [
-            # Shell operators
-            "&&", "||", ";", "|", ">", "<", ">>", "<<",
-            # System commands
-            "sudo", "su", "chmod", "chown", "rm", "del",
-            "eval", "exec", "system", "sh", "bash",
-            # GCP dangerous operations
-            "delete", "destroy", "remove", "terminate",
-            # File operations that could be dangerous
-            "mv", "cp", "move", "copy",
-            # Network operations
-            "curl", "wget", "ssh", "scp", "rsync"
-        ]
-        
-        command_lower = command.lower()
-        
-        # Check for dangerous patterns
-        for pattern in dangerous_patterns:
-            if pattern in command_lower:
-                # Allow safe delete operations for GCP resources
-                if pattern == "delete" and any(safe_delete in command_lower for safe_delete in [
-                    "instances list", "projects list", "images list", 
-                    "disks list", "snapshots list", "--dry-run", "--help"
-                ]):
-                    continue
-                logger.warning(f"Blocked potentially dangerous command: {command}")
-                return False
-        
-        # Additional safety checks
-        if command.startswith("-") or command.startswith("--"):
-            logger.warning(f"Blocked command starting with dash: {command}")
+    def _is_safe_gcloud_command(self, command: str) -> bool:
+        """
+        Check if a gcloud command is safe to execute.
+
+        Delegates to cloud_command_safety.is_safe_gcloud_command(), which
+        allowlists read-only gcloud subcommands (list/describe/get-*/...)
+        rather than blocklisting dangerous substrings — including the old
+        "delete" carve-out for "instances list" etc., which was itself a
+        substring match and not actually tied to what command ran. See that
+        module's docstring for why the substring-blocklist approach this
+        replaced was both bypassable and prone to false positives.
+        """
+        if not is_safe_gcloud_command(command):
+            logger.warning(f"Blocked gcloud command that isn't a recognized read-only operation: {command}")
             return False
-        
-        # Check for suspicious character sequences
-        suspicious_chars = ["$(", "`", "${", "\\", "&&", "||"]
-        for char_seq in suspicious_chars:
-            if char_seq in command:
-                logger.warning(f"Blocked command with suspicious characters: {command}")
-                return False
-        
+
+        return True
+
+    def _is_safe_gsutil_command(self, command: str) -> bool:
+        """Check if a gsutil command is safe to execute (see is_safe_gcloud_command docstring)."""
+        if not is_safe_gsutil_command(command):
+            logger.warning(f"Blocked gsutil command that isn't a recognized read-only operation: {command}")
+            return False
+
+        return True
+
+    def _is_safe_bq_command(self, command: str) -> bool:
+        """Check if a bq command is safe to execute (see is_safe_gcloud_command docstring)."""
+        if not is_safe_bq_command(command):
+            logger.warning(f"Blocked bq command that isn't a recognized read-only operation: {command}")
+            return False
+
         return True
 
     async def run(self):
