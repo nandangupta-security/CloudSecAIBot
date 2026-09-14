@@ -12,6 +12,8 @@ import sys
 from typing import Any, Dict, List, Optional
 import shlex
 
+from cloud_command_safety import is_safe_gcloud_command, is_safe_gsutil_command, is_safe_bq_command
+
 # MCP server imports
 try:
     from mcp.server import Server
@@ -172,12 +174,12 @@ class GCPMCPServer:
                 )]
             
             # Validate command doesn't contain dangerous operations
-            if not self._is_safe_command(command):
+            if not self._is_safe_gcloud_command(command):
                 return [TextContent(
                     type="text",
                     text="Error: Command contains potentially dangerous operations"
                 )]
-            
+
             # Prepare full gcloud command
             full_command = f"gcloud {command}"
             
@@ -202,12 +204,12 @@ class GCPMCPServer:
                 )]
             
             # Validate command doesn't contain dangerous operations
-            if not self._is_safe_command(command):
+            if not self._is_safe_gsutil_command(command):
                 return [TextContent(
                     type="text",
                     text="Error: Command contains potentially dangerous operations"
                 )]
-            
+
             # Prepare full gsutil command
             full_command = f"gsutil {command}"
             
@@ -232,12 +234,12 @@ class GCPMCPServer:
                 )]
             
             # Validate command doesn't contain dangerous operations
-            if not self._is_safe_command(command):
+            if not self._is_safe_bq_command(command):
                 return [TextContent(
                     type="text",
                     text="Error: Command contains potentially dangerous operations"
                 )]
-            
+
             # Prepare full bq command
             full_command = f"bq {command}"
             
@@ -471,49 +473,38 @@ class GCPMCPServer:
                 text=f"Error getting help: {str(e)}"
             )]
 
-    def _is_safe_command(self, command: str) -> bool:
-        """Check if command is safe to execute"""
-        # List of potentially dangerous operations
-        dangerous_patterns = [
-            # Shell operators
-            "&&", "||", ";", "|", ">", "<", ">>", "<<",
-            # System commands
-            "sudo", "su", "chmod", "chown", "rm", "del",
-            "eval", "exec", "system", "sh", "bash",
-            # GCP dangerous operations
-            "delete", "destroy", "remove", "terminate",
-            # File operations that could be dangerous
-            "mv", "cp", "move", "copy",
-            # Network operations
-            "curl", "wget", "ssh", "scp", "rsync"
-        ]
-        
-        command_lower = command.lower()
-        
-        # Check for dangerous patterns
-        for pattern in dangerous_patterns:
-            if pattern in command_lower:
-                # Allow safe delete operations for GCP resources
-                if pattern == "delete" and any(safe_delete in command_lower for safe_delete in [
-                    "instances list", "projects list", "images list", 
-                    "disks list", "snapshots list", "--dry-run", "--help"
-                ]):
-                    continue
-                logger.warning(f"Blocked potentially dangerous command: {command}")
-                return False
-        
-        # Additional safety checks
-        if command.startswith("-") or command.startswith("--"):
-            logger.warning(f"Blocked command starting with dash: {command}")
+    def _is_safe_gcloud_command(self, command: str) -> bool:
+        """
+        Check if a gcloud command is safe to execute.
+
+        Delegates to cloud_command_safety.is_safe_gcloud_command(), which
+        allowlists read-only gcloud subcommands (list/describe/get-*/...)
+        rather than blocklisting dangerous substrings — including the old
+        "delete" carve-out for "instances list" etc., which was itself a
+        substring match and not actually tied to what command ran. See that
+        module's docstring for why the substring-blocklist approach this
+        replaced was both bypassable and prone to false positives.
+        """
+        if not is_safe_gcloud_command(command):
+            logger.warning(f"Blocked gcloud command that isn't a recognized read-only operation: {command}")
             return False
-        
-        # Check for suspicious character sequences
-        suspicious_chars = ["$(", "`", "${", "\\", "&&", "||"]
-        for char_seq in suspicious_chars:
-            if char_seq in command:
-                logger.warning(f"Blocked command with suspicious characters: {command}")
-                return False
-        
+
+        return True
+
+    def _is_safe_gsutil_command(self, command: str) -> bool:
+        """Check if a gsutil command is safe to execute (see is_safe_gcloud_command docstring)."""
+        if not is_safe_gsutil_command(command):
+            logger.warning(f"Blocked gsutil command that isn't a recognized read-only operation: {command}")
+            return False
+
+        return True
+
+    def _is_safe_bq_command(self, command: str) -> bool:
+        """Check if a bq command is safe to execute (see is_safe_gcloud_command docstring)."""
+        if not is_safe_bq_command(command):
+            logger.warning(f"Blocked bq command that isn't a recognized read-only operation: {command}")
+            return False
+
         return True
 
     async def run(self):

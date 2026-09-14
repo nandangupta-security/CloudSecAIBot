@@ -12,6 +12,8 @@ import sys
 from typing import Any, Dict, List, Optional
 import shlex
 
+from cloud_command_safety import is_safe_azure_command
+
 # MCP server imports
 try:
     from mcp.server import Server
@@ -351,37 +353,19 @@ class AzureMCPServer:
             )]
 
     def _is_safe_command(self, command: str) -> bool:
-        """Check if command is safe to execute"""
-        # List of potentially dangerous operations
-        dangerous_patterns = [
-            "delete", "remove", "destroy", "purge",
-            "&&", "||", ";", "|", ">", "<",
-            "sudo", "su", "chmod", "chown",
-            "eval", "exec", "system", "rm ",
-            # Azure-specific dangerous operations
-            "deployment delete", "group delete",
-            "vm delete", "disk delete",
-            "keyvault delete", "storage delete"
-        ]
-        
-        command_lower = command.lower()
-        
-        # Check for dangerous patterns
-        for pattern in dangerous_patterns:
-            if pattern in command_lower:
-                logger.warning(f"Blocked potentially dangerous command: {command}")
-                return False
-        
-        # Additional safety checks
-        if command.startswith("-") or command.startswith("--"):
-            logger.warning(f"Blocked command starting with dash: {command}")
+        """
+        Check if command is safe to execute.
+
+        Delegates to cloud_command_safety.is_safe_azure_command(), which
+        allowlists read-only az subcommands (list/show/get/...) rather than
+        blocklisting dangerous substrings. See that module's docstring for
+        why the substring-blocklist approach this replaced was both
+        bypassable and prone to false positives.
+        """
+        if not is_safe_azure_command(command):
+            logger.warning(f"Blocked command that isn't a recognized read-only operation: {command}")
             return False
-        
-        # Check for delete operations in various forms
-        if " delete " in command_lower or command_lower.endswith(" delete"):
-            logger.warning(f"Blocked delete operation: {command}")
-            return False
-        
+
         return True
 
     async def run(self):
