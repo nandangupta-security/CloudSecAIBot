@@ -14,7 +14,7 @@ import shlex
 
 # MCP server imports
 try:
-    from mcp.server import Server
+    from mcp.server import Server, NotificationOptions
     from mcp.server.models import InitializationOptions
     from mcp.server.stdio import stdio_server
     from mcp.types import (
@@ -528,7 +528,10 @@ class GCPMCPServer:
                 InitializationOptions(
                     server_name="gcp-cli-server",
                     server_version="1.0.0",
-                    capabilities={}
+                    capabilities=self.server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    )
                 )
             )
 

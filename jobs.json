@@ -1,0 +1,22 @@
+[
+  {
+    "task_id": "azure-public-buckets-check",
+    "cron": "*/5 * * * *",
+    "prompt": "List all Azure storage accounts and check which ones have public blob access enabled. For each storage account, show its name, resource group, location, whether AllowBlobPublicAccess is true or false, and list any containers with public access (Blob or Container level). Summarize the findings clearly.",
+    "servers": [
+      "azure"
+    ],
+    "enabled": true,
+    "created_at": "2026-04-12T21:25:24.616498"
+  },
+  {
+    "task_id": "s3-public-access-check",
+    "cron": "*/30 * * * *",
+    "prompt": "Check which S3 buckets are publicly accessible in our AWS account. For each bucket, check: 1) Block Public Access settings (bucket-level and account-level), 2) Bucket ACLs that grant public access, 3) Bucket policies that allow public access (s3:GetObject or s3:ListBucket to Principal \"*\"). List all publicly accessible buckets with the reason why they are public, and flag any high-risk findings.",
+    "servers": [
+      "aws"
+    ],
+    "enabled": true,
+    "created_at": "2026-05-06T20:44:31.953643"
+  }
+]
