@@ -54,14 +54,20 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 
-# Import the agent runner — this is what actually runs the LLM + MCP loop
-from agent_runner import run_agent
-
-
 # ──────────────────────────────────────────────────────────────────────────────
 # SECTION 1 ── Setup & Constants
 # ──────────────────────────────────────────────────────────────────────────────
-load_dotenv()
+# override=True ensures .env values always win over any pre-existing shell env vars.
+load_dotenv(override=True)
+
+# Import the agent runner based on CLOUDSEC_BACKEND env var:
+#   api  →  agent_runner.py     (LiteLLM, any provider, needs API key)
+#   cli  →  agent_runner_cli.py (Claude Code SDK, uses local claude CLI auth)
+_backend = os.getenv("CLOUDSEC_BACKEND", "api").lower()
+if _backend == "cli":
+    from agent_runner_cli import run_agent
+else:
+    from agent_runner import run_agent
 
 _debug = os.getenv("CLOUDSEC_DEBUG", "false").lower() == "true"
 logging.basicConfig(
@@ -212,7 +218,8 @@ def _register_job(
             misfire_grace_time=300,
         )
         tracked[task_id] = ap_job.id
-        logger.info(f"[reconcile] Registered [{task_id}] cron='{job['cron']}' next={ap_job.next_run_time}")
+        next_run = getattr(ap_job, "next_run_time", None)
+        logger.info(f"[reconcile] Registered [{task_id}] cron='{job['cron']}' next={next_run}")
     except Exception as exc:
         logger.error(f"[reconcile] Could not register [{task_id}]: {exc}")
 
@@ -250,9 +257,9 @@ async def run_daemon() -> None:
     scheduler = AsyncIOScheduler()
     tracked: dict[str, str] = {}   # { task_id → apscheduler_job_id }
 
-    # Load existing jobs from file before starting the scheduler
-    reconcile_jobs(scheduler, tracked)
+    # Start the scheduler first so next_run_time is computed when jobs are added.
     scheduler.start()
+    reconcile_jobs(scheduler, tracked)
 
     logger.info(
         f"Scheduler daemon started. "
