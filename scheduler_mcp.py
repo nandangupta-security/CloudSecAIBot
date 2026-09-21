@@ -38,11 +38,12 @@ import asyncio
 import json
 import logging
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Sequence
 
-from mcp.server import Server
+from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
@@ -60,7 +61,17 @@ BASE_DIR   = Path(__file__).parent
 JOBS_FILE  = BASE_DIR / "jobs.json"    # shared with scheduler_daemon.py
 OUTPUT_DIR = BASE_DIR / "output"       # where agent_runner saves results
 
+# task_id ends up in filenames (output/<task_id>_<timestamp>.txt) and in a
+# glob pattern in _handle_get_results — restrict to a safe charset so it
+# can't traverse out of OUTPUT_DIR (e.g. "../../etc/passwd") or widen the
+# glob with "*"/"?".
+TASK_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+
 app = Server("cloudsec-scheduler")
+
+
+def _valid_task_id(task_id: str) -> bool:
+    return bool(TASK_ID_RE.fullmatch(task_id))
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -248,6 +259,12 @@ def _handle_create(args: dict) -> list[TextContent]:
     if not task_id or not cron or not prompt:
         return [TextContent(type="text", text="Error: task_id, cron, and prompt are all required.")]
 
+    if not _valid_task_id(task_id):
+        return [TextContent(
+            type="text",
+            text="Error: task_id may only contain letters, numbers, underscores, and hyphens.",
+        )]
+
     jobs = read_jobs()
 
     # Prevent duplicate task IDs
@@ -323,6 +340,11 @@ def _handle_delete(args: dict) -> list[TextContent]:
     task_id = args.get("task_id", "").strip()
     if not task_id:
         return [TextContent(type="text", text="Error: task_id is required.")]
+    if not _valid_task_id(task_id):
+        return [TextContent(
+            type="text",
+            text="Error: task_id may only contain letters, numbers, underscores, and hyphens.",
+        )]
 
     jobs = read_jobs()
     original_count = len(jobs)
@@ -350,6 +372,11 @@ def _handle_toggle(args: dict) -> list[TextContent]:
 
     if not task_id or enabled is None:
         return [TextContent(type="text", text="Error: task_id and enabled (true/false) are required.")]
+    if not _valid_task_id(task_id):
+        return [TextContent(
+            type="text",
+            text="Error: task_id may only contain letters, numbers, underscores, and hyphens.",
+        )]
 
     jobs = read_jobs()
     job  = find_job(jobs, task_id)
@@ -381,6 +408,11 @@ def _handle_get_results(args: dict) -> list[TextContent]:
 
     if not task_id:
         return [TextContent(type="text", text="Error: task_id is required.")]
+    if not _valid_task_id(task_id):
+        return [TextContent(
+            type="text",
+            text="Error: task_id may only contain letters, numbers, underscores, and hyphens.",
+        )]
 
     if not OUTPUT_DIR.exists():
         return [TextContent(type="text", text="No results found — output directory does not exist yet.")]
@@ -429,7 +461,10 @@ async def main() -> None:
             InitializationOptions(
                 server_name="cloudsec-scheduler",
                 server_version="1.0.0",
-                capabilities={},
+                capabilities=app.get_capabilities(
+                    notification_options=NotificationOptions(),
+                    experimental_capabilities={},
+                ),
             ),
         )
 

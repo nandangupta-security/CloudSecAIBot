@@ -9,3 +9,6 @@ __pycache__/
 
 # CloudSentinel scan output — may contain real cloud resource/account data
 output/
+
+# Daemon log files
+*.log
