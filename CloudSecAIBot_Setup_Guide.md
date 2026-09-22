@@ -164,7 +164,6 @@ Add all six MCP servers. Replace the path prefix with your actual repo location.
       "command": "/Users/yourusername/CloudSecAIBot/.venv/bin/python",
       "args": ["/Users/yourusername/CloudSecAIBot/azurecli_claude.py"],
       "env": {
-        "AZURE_CLI_DISABLE_CONNECTION_VERIFICATION": "1",
         "PATH": "/usr/local/bin:/usr/bin:/bin"
       }
     },
@@ -181,7 +180,6 @@ Add all six MCP servers. Replace the path prefix with your actual repo location.
       "command": "/Users/yourusername/CloudSecAIBot/.venv/bin/python",
       "args": ["/Users/yourusername/CloudSecAIBot/prowler_mcp.py"],
       "env": {
-        "PROWLER_DISABLE_CONNECTION_VERIFICATION": "1",
         "PATH": "/usr/local/bin:/usr/bin:/bin"
       }
     },
@@ -208,10 +206,7 @@ Add all six MCP servers. Replace the path prefix with your actual repo location.
     },
     "cloud-sec-ai-bot-Azure": {
       "command": "C:\\Users\\yourusername\\CloudSecAIBot\\.venv\\Scripts\\python.exe",
-      "args": ["C:\\Users\\yourusername\\CloudSecAIBot\\azurecli_claude.py"],
-      "env": {
-        "AZURE_CLI_DISABLE_CONNECTION_VERIFICATION": "1"
-      }
+      "args": ["C:\\Users\\yourusername\\CloudSecAIBot\\azurecli_claude.py"]
     },
     "cloud-sec-ai-bot-GCP": {
       "command": "C:\\Users\\yourusername\\CloudSecAIBot\\.venv\\Scripts\\python.exe",
@@ -223,10 +218,7 @@ Add all six MCP servers. Replace the path prefix with your actual repo location.
     },
     "cloud-sec-ai-bot-prowler": {
       "command": "C:\\Users\\yourusername\\CloudSecAIBot\\.venv\\Scripts\\python.exe",
-      "args": ["C:\\Users\\yourusername\\CloudSecAIBot\\prowler_mcp.py"],
-      "env": {
-        "PROWLER_DISABLE_CONNECTION_VERIFICATION": "1"
-      }
+      "args": ["C:\\Users\\yourusername\\CloudSecAIBot\\prowler_mcp.py"]
     },
     "cloud-sec-ai-bot-scheduler": {
       "command": "C:\\Users\\yourusername\\CloudSecAIBot\\.venv\\Scripts\\python.exe",
@@ -254,7 +246,6 @@ Add all six MCP servers. Replace the path prefix with your actual repo location.
       "command": "/home/yourusername/CloudSecAIBot/.venv/bin/python",
       "args": ["/home/yourusername/CloudSecAIBot/azurecli_claude.py"],
       "env": {
-        "AZURE_CLI_DISABLE_CONNECTION_VERIFICATION": "1",
         "PATH": "/usr/local/bin:/usr/bin:/bin"
       }
     },
@@ -271,7 +262,6 @@ Add all six MCP servers. Replace the path prefix with your actual repo location.
       "command": "/home/yourusername/CloudSecAIBot/.venv/bin/python",
       "args": ["/home/yourusername/CloudSecAIBot/prowler_mcp.py"],
       "env": {
-        "PROWLER_DISABLE_CONNECTION_VERIFICATION": "1",
         "PATH": "/usr/local/bin:/usr/bin:/bin"
       }
     },
@@ -284,6 +274,8 @@ Add all six MCP servers. Replace the path prefix with your actual repo location.
 ```
 
 > **Note on the scheduler entry**: No `env` block is needed here. The model is configured via `CLOUDSEC_AI_MODEL` in `.env`, which the scheduler daemon reads at startup.
+
+> **A note on TLS verification**: earlier revisions of this guide set `AZURE_CLI_DISABLE_CONNECTION_VERIFICATION` and `PROWLER_DISABLE_CONNECTION_VERIFICATION` by default. Both silently disable TLS certificate validation on every request the Azure CLI / Prowler make (confirmed via the `InsecureRequestWarning: Unverified HTTPS request` urllib3 emits with them set), which exposes cloud API traffic — including auth tokens — to interception on a hostile network, with no corresponding benefit for a normal setup. Neither variable is required for the servers in this repo to function; testing without them succeeds cleanly. Only set them if you are behind a corporate TLS-inspecting proxy that requires it, and understand the tradeoff before doing so.
 
 ### Step 7: Restart Claude Desktop
 

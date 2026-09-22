@@ -10,10 +10,7 @@
             "command": "Path-to-your-local-folder/CloudSecAIBot/.venv/bin/python",
             "args": [
                 "Path-to-your-local-folder/CloudSecAIBot/azurecli_claude.py"
-            ],
-            "env": {
-                "AZURE_CLI_DISABLE_CONNECTION_VERIFICATION": "1"
-            }
+            ]
         },
         "cloud-sec-ai-bot-GCP": {
             "command": "Path-to-your-local-folder/CloudSecAIBot/.venv/bin/python",
@@ -25,10 +22,7 @@
             "command": "Path-to-your-local-folder/CloudSecAIBot/.venv/bin/python",
             "args": [
                 "Path-to-your-local-folder/CloudSecAIBot/prowler_mcp.py"
-            ],
-            "env": {
-                "PROWLER_DISABLE_CONNECTION_VERIFICATION": "1"
-            }
+            ]
         },
         "cloud-sec-ai-bot-scheduler": {
             "command": "Path-to-your-local-folder/CloudSecAIBot/.venv/bin/python",
